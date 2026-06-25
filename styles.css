@@ -299,6 +299,37 @@ h3 {
   gap: 10px;
 }
 
+.vault-card {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.76fr) minmax(220px, 1.24fr);
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid rgba(0, 166, 118, 0.18);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(223, 243, 255, 0.74), transparent 58%),
+    #fff;
+}
+
+.vault-card h3 {
+  margin-bottom: 4px;
+}
+
+.vault-card p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.vault-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .field,
 .text-block {
   display: flex;
@@ -1076,6 +1107,8 @@ textarea:focus {
   }
 
   .field-grid,
+  .vault-card,
+  .vault-fields,
   .metric-grid,
   .report-grid,
   .tailor-layout,

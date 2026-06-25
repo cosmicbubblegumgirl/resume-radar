@@ -77,11 +77,29 @@
             </label>
           </div>
 
+          <div class="vault-card" aria-label="Local user database">
+            <div>
+              <p class="eyebrow">User vault</p>
+              <h3>Local profile database</h3>
+              <p id="dbStatus">Starting your private browser vault...</p>
+            </div>
+            <div class="vault-fields">
+              <label class="field">
+                <span>Your name</span>
+                <input id="userNameInput" type="text" placeholder="Alex Explorer" autocomplete="name" />
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input id="userEmailInput" type="email" placeholder="alex@email.com" autocomplete="email" />
+              </label>
+            </div>
+          </div>
+
           <div class="upload-row">
             <label class="upload-box" for="resumeFile">
               <input id="resumeFile" type="file" accept=".txt,.md,.pdf,.docx" />
               <i data-lucide="file-up"></i>
-              <span id="fileLabel">Drop in PDF, DOCX, TXT, or paste below</span>
+              <span id="fileLabel">Drop in PDF of any size, DOCX, TXT, or paste below</span>
             </label>
           </div>
 

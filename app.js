@@ -1,6 +1,9 @@
 const PDFJS_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
 const PDFJS_WORKER_URL = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
-const TRACKER_KEY = "resumeRadar.savedJobs.v1";
+const DB_NAME = "resumeRadarUserVault";
+const DB_VERSION = 1;
+const ACTIVE_USER_ID = "local-applicant";
+const LEGACY_TRACKER_KEY = "resumeRadar.savedJobs.v1";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -10,6 +13,9 @@ const nodes = {
   companyInput: $("#companyInput"),
   resumeFile: $("#resumeFile"),
   fileLabel: $("#fileLabel"),
+  userNameInput: $("#userNameInput"),
+  userEmailInput: $("#userEmailInput"),
+  dbStatus: $("#dbStatus"),
   resumeText: $("#resumeText"),
   jobText: $("#jobText"),
   analyzeBtn: $("#analyzeBtn"),
@@ -44,6 +50,15 @@ const nodes = {
 let lastReport = null;
 let lastFile = null;
 let liveScanTimer = null;
+let profileSaveTimer = null;
+let db = null;
+let savedJobsCache = [];
+let currentUser = {
+  id: ACTIVE_USER_ID,
+  name: "",
+  email: "",
+  updatedAt: "",
+};
 
 const stopWords = new Set(
   `
@@ -253,7 +268,7 @@ Preferred
 
 init();
 
-function init() {
+async function init() {
   nodes.resumeFile.addEventListener("change", handleFileUpload);
   nodes.analyzeBtn.addEventListener("click", runScan);
   nodes.sampleBtn.addEventListener("click", loadSample);
@@ -264,6 +279,8 @@ function init() {
   nodes.downloadPdfBtn.addEventListener("click", downloadHighlightedPdf);
   nodes.copyPlanBtn.addEventListener("click", copyTailoringPlan);
   nodes.clearTrackerBtn.addEventListener("click", clearTracker);
+  nodes.userNameInput.addEventListener("input", scheduleProfileSave);
+  nodes.userEmailInput.addEventListener("input", scheduleProfileSave);
   [nodes.roleInput, nodes.companyInput, nodes.resumeText, nodes.jobText].forEach((input) => {
     input.addEventListener("input", scheduleLiveScan);
   });
@@ -272,7 +289,8 @@ function init() {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
 
-  renderTracker();
+  await initUserVault();
+  await renderTracker();
   refreshIcons();
 }
 
@@ -288,6 +306,185 @@ function scheduleLiveScan() {
   }, 700);
 }
 
+async function initUserVault() {
+  try {
+    db = await openUserDatabase();
+    await migrateLegacyJobs();
+    currentUser = (await getVaultRecord("users", ACTIVE_USER_ID)) || currentUser;
+    nodes.userNameInput.value = currentUser.name || "";
+    nodes.userEmailInput.value = currentUser.email || "";
+    savedJobsCache = await getAllVaultRecords("jobs");
+    await updateVaultStatus();
+  } catch (error) {
+    db = null;
+    nodes.dbStatus.textContent = "Local vault unavailable in this browser. Scans still work, but saved data will not persist.";
+    console.warn("Resume Radar vault unavailable", error);
+  }
+}
+
+function openUserDatabase() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) {
+      reject(new Error("IndexedDB is not available."));
+      return;
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const database = request.result;
+
+      if (!database.objectStoreNames.contains("users")) {
+        database.createObjectStore("users", { keyPath: "id" });
+      }
+
+      if (!database.objectStoreNames.contains("jobs")) {
+        const jobs = database.createObjectStore("jobs", { keyPath: "id" });
+        jobs.createIndex("savedAt", "savedAt");
+      }
+
+      if (!database.objectStoreNames.contains("scans")) {
+        const scans = database.createObjectStore("scans", { keyPath: "id" });
+        scans.createIndex("createdAt", "createdAt");
+      }
+
+      if (!database.objectStoreNames.contains("uploads")) {
+        const uploads = database.createObjectStore("uploads", { keyPath: "id" });
+        uploads.createIndex("createdAt", "createdAt");
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function vaultStore(name, mode = "readonly") {
+  if (!db) return null;
+  return db.transaction(name, mode).objectStore(name);
+}
+
+function requestAsPromise(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getVaultRecord(storeName, key) {
+  const store = vaultStore(storeName);
+  if (!store) return null;
+  return requestAsPromise(store.get(key));
+}
+
+async function getAllVaultRecords(storeName) {
+  const store = vaultStore(storeName);
+  if (!store) return [];
+  return requestAsPromise(store.getAll());
+}
+
+async function putVaultRecord(storeName, record) {
+  const store = vaultStore(storeName, "readwrite");
+  if (!store) return record;
+  await requestAsPromise(store.put(record));
+  return record;
+}
+
+async function deleteVaultRecord(storeName, key) {
+  const store = vaultStore(storeName, "readwrite");
+  if (!store) return;
+  await requestAsPromise(store.delete(key));
+}
+
+async function clearVaultStore(storeName) {
+  const store = vaultStore(storeName, "readwrite");
+  if (!store) return;
+  await requestAsPromise(store.clear());
+}
+
+async function countVaultRecords(storeName) {
+  const store = vaultStore(storeName);
+  if (!store) return 0;
+  return requestAsPromise(store.count());
+}
+
+async function migrateLegacyJobs() {
+  const legacy = localStorage.getItem(LEGACY_TRACKER_KEY);
+  if (!legacy || !db) return;
+
+  try {
+    const jobs = JSON.parse(legacy);
+    if (Array.isArray(jobs)) {
+      for (const job of jobs) {
+        await putVaultRecord("jobs", job);
+      }
+      localStorage.removeItem(LEGACY_TRACKER_KEY);
+    }
+  } catch {
+    localStorage.removeItem(LEGACY_TRACKER_KEY);
+  }
+}
+
+function scheduleProfileSave() {
+  clearTimeout(profileSaveTimer);
+  profileSaveTimer = setTimeout(saveProfile, 500);
+}
+
+async function saveProfile() {
+  currentUser = {
+    id: ACTIVE_USER_ID,
+    name: nodes.userNameInput.value.trim(),
+    email: nodes.userEmailInput.value.trim(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await putVaultRecord("users", currentUser);
+  await updateVaultStatus();
+}
+
+async function updateVaultStatus() {
+  if (!db) return;
+
+  const jobCount = await countVaultRecords("jobs");
+  const scanCount = await countVaultRecords("scans");
+  const uploadCount = await countVaultRecords("uploads");
+  const profileLabel = currentUser.name ? `Profile saved for ${currentUser.name}` : "Anonymous profile ready";
+  nodes.dbStatus.textContent = `${profileLabel}. ${jobCount} jobs, ${scanCount} scans, ${uploadCount} uploads stored locally.`;
+}
+
+async function saveUploadSnapshot(file, extractedText) {
+  await putVaultRecord("uploads", {
+    id: crypto.randomUUID?.() || `upload-${Date.now()}`,
+    userId: ACTIVE_USER_ID,
+    name: file.name,
+    type: file.type || extensionOf(file.name),
+    extension: extensionOf(file.name),
+    size: file.size,
+    extractedCharacters: extractedText.length,
+    preview: extractedText.slice(0, 5000),
+    createdAt: new Date().toISOString(),
+  });
+  await updateVaultStatus();
+}
+
+async function saveScanSnapshot(report, resume, job) {
+  await putVaultRecord("scans", {
+    id: report.id,
+    userId: ACTIVE_USER_ID,
+    role: report.role,
+    company: report.company,
+    score: report.overall,
+    keywordScore: report.keywordScore,
+    missing: report.missingTerms.length,
+    file: lastFile,
+    resumeCharacters: resume.length,
+    jobCharacters: job.length,
+    topGaps: report.missingTerms.slice(0, 8).map((term) => term.label),
+    createdAt: report.createdAt,
+  });
+  await updateVaultStatus();
+}
+
 async function handleFileUpload(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -296,17 +493,22 @@ async function handleFileUpload(event) {
     name: file.name,
     type: file.type || extensionOf(file.name),
     extension: extensionOf(file.name),
+    size: file.size,
   };
 
-  nodes.fileLabel.textContent = `Reading ${file.name}`;
-  nodes.inputHelp.textContent = "I am pulling out the text. If the document is really an image in disguise, paste the text instead.";
+  nodes.fileLabel.textContent = `Reading ${file.name} (${formatFileSize(file.size)})`;
+  nodes.inputHelp.textContent =
+    extensionOf(file.name) === "pdf"
+      ? "No app-side PDF size cap is applied. Large PDFs may take a while and still depend on your browser's memory."
+      : "I am pulling out the text. If the document is really an image in disguise, paste the text instead.";
 
   try {
     const text = await readResumeFile(file);
     nodes.resumeText.value = text.trim();
+    await saveUploadSnapshot(file, text.trim());
     nodes.fileLabel.textContent = file.name;
     nodes.inputHelp.textContent = text.trim().length
-      ? "Resume imported. Add the job post and I will start checking the match."
+      ? `Resume imported from ${formatFileSize(file.size)}. The upload metadata is in your local vault.`
       : "I could not find readable text. Paste the resume manually for a better scan.";
   } catch (error) {
     nodes.fileLabel.textContent = "Upload failed. Paste text instead.";
@@ -329,11 +531,16 @@ async function readPdf(file) {
   const pdfjs = await import(PDFJS_URL);
   pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
 
+  nodes.inputHelp.textContent = `Loading PDF (${formatFileSize(file.size)}). No app-side size cap; your browser gets the final say.`;
   const data = await file.arrayBuffer();
   const document = await pdfjs.getDocument({ data }).promise;
   const pages = [];
 
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    if (pageNumber === 1 || pageNumber % 5 === 0 || pageNumber === document.numPages) {
+      nodes.inputHelp.textContent = `Reading PDF page ${pageNumber} of ${document.numPages}. Big files may need a minute.`;
+    }
+
     const page = await document.getPage(pageNumber);
     const content = await page.getTextContent();
     const pageText = content.items.map((item) => item.str).join(" ");
@@ -353,7 +560,7 @@ async function readDocx(file) {
   return result.value || "";
 }
 
-function runScan(options = {}) {
+async function runScan(options = {}) {
   const quiet = Boolean(options.quiet);
   const resume = nodes.resumeText.value.trim();
   const job = nodes.jobText.value.trim();
@@ -377,6 +584,9 @@ function runScan(options = {}) {
   nodes.downloadCvBtn.disabled = false;
   nodes.downloadPdfBtn.disabled = false;
   nodes.copyPlanBtn.disabled = false;
+  if (!quiet) {
+    await saveScanSnapshot(lastReport, resume, job);
+  }
   nodes.inputHelp.textContent = `Live check: ${lastReport.overall}% match, ${lastReport.missingTerms.length} things worth fixing first.`;
 }
 
@@ -1305,12 +1515,14 @@ function activateTab(tabName) {
   });
 }
 
-function saveCurrentJob() {
+async function saveCurrentJob() {
   if (!lastReport) return;
 
-  const jobs = loadJobs();
   const job = {
     id: lastReport.id,
+    userId: ACTIVE_USER_ID,
+    applicantName: currentUser.name,
+    applicantEmail: currentUser.email,
     title: lastReport.role,
     company: lastReport.company,
     score: lastReport.overall,
@@ -1321,15 +1533,20 @@ function saveCurrentJob() {
     savedAt: new Date().toISOString(),
   };
 
-  jobs.unshift(job);
-  saveJobs(jobs.slice(0, 40));
-  renderTracker();
+  await putVaultRecord("jobs", job);
+  savedJobsCache = [job, ...savedJobsCache.filter((saved) => saved.id !== job.id)].slice(0, 40);
+  await updateVaultStatus();
+  await renderTracker();
   activateTab("tracker");
   showToast("Pinned to your application trail.");
 }
 
-function renderTracker() {
-  const jobs = loadJobs();
+async function renderTracker() {
+  if (db) {
+    savedJobsCache = await getAllVaultRecords("jobs");
+  }
+
+  const jobs = [...savedJobsCache].sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
 
   if (!jobs.length) {
     nodes.trackerTable.innerHTML = `<p class="empty-line">No saved jobs yet. Run a scan, then pin it here so your future self knows what to fix next.</p>`;
@@ -1363,15 +1580,22 @@ function renderTracker() {
   $$(".tracker-row").forEach((row) => {
     const id = row.dataset.id;
 
-    row.querySelector("select").addEventListener("change", (event) => {
-      const updated = loadJobs().map((job) => (job.id === id ? { ...job, stage: event.target.value } : job));
-      saveJobs(updated);
+    row.querySelector("select").addEventListener("change", async (event) => {
+      const job = savedJobsCache.find((saved) => saved.id === id);
+      if (!job) return;
+
+      const updatedJob = { ...job, stage: event.target.value, updatedAt: new Date().toISOString() };
+      savedJobsCache = savedJobsCache.map((saved) => (saved.id === id ? updatedJob : saved));
+      await putVaultRecord("jobs", updatedJob);
+      await updateVaultStatus();
       showToast("Pipeline stage updated.");
     });
 
-    row.querySelector(".delete-job").addEventListener("click", () => {
-      saveJobs(loadJobs().filter((job) => job.id !== id));
-      renderTracker();
+    row.querySelector(".delete-job").addEventListener("click", async () => {
+      savedJobsCache = savedJobsCache.filter((job) => job.id !== id);
+      await deleteVaultRecord("jobs", id);
+      await updateVaultStatus();
+      await renderTracker();
       refreshIcons();
     });
   });
@@ -1379,9 +1603,11 @@ function renderTracker() {
   refreshIcons();
 }
 
-function clearTracker() {
-  localStorage.removeItem(TRACKER_KEY);
-  renderTracker();
+async function clearTracker() {
+  savedJobsCache = [];
+  await clearVaultStore("jobs");
+  await updateVaultStatus();
+  await renderTracker();
   showToast("Application trail cleared.");
 }
 
@@ -1401,7 +1627,7 @@ function clearInputs() {
   nodes.resumeText.value = "";
   nodes.jobText.value = "";
   nodes.resumeFile.value = "";
-  nodes.fileLabel.textContent = "Upload PDF, DOCX, TXT, or paste below";
+  nodes.fileLabel.textContent = "Drop in PDF of any size, DOCX, TXT, or paste below";
   nodes.inputHelp.textContent =
     "The score updates as you edit. Think of it as a calm pre-flight check, not a judgment from the hiring heavens.";
   lastReport = null;
@@ -1792,6 +2018,20 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(value));
 }
 
+function formatFileSize(bytes) {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = Number(bytes) || 0;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  const precision = size >= 10 || unitIndex === 0 ? 0 : 1;
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
+}
+
 function slugify(value) {
   return normalizeKey(value).replace(/\s+/g, "-") || "scan";
 }
@@ -1807,18 +2047,6 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-function loadJobs() {
-  try {
-    return JSON.parse(localStorage.getItem(TRACKER_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveJobs(jobs) {
-  localStorage.setItem(TRACKER_KEY, JSON.stringify(jobs));
 }
 
 function refreshIcons() {
