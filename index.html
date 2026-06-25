@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resume Radar ATS Lab</title>
+    <meta
+      name="description"
+      content="A local-first ATS resume scanner from a fellow job seeker: match scoring, keyword gaps, resume checks, bullet suggestions, and an application tracker."
+    />
+    <link rel="icon" href="./resume-radar-icon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="./app.js" type="module"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <img src="./resume-radar-icon.svg" alt="" />
+          </div>
+          <div>
+            <p class="eyebrow">From one job seeker to another</p>
+            <h1>Resume Radar</h1>
+            <p class="brand-byline">
+              Created by a fellow explorer trying to navigate these rocky waters.
+              <span>A Quantum Cupcake creation.</span>
+            </p>
+          </div>
+        </div>
+        <div class="topbar-actions" aria-label="Global actions">
+          <button class="icon-button soft" type="button" id="sampleBtn" title="Load sample data">
+            <i data-lucide="sparkles"></i>
+            <span>Try demo</span>
+          </button>
+          <button class="icon-button ghost" type="button" id="clearBtn" title="Clear inputs">
+            <i data-lucide="rotate-ccw"></i>
+            <span>Clear</span>
+          </button>
+          <button class="icon-button dark" type="button" id="exportBtn" title="Download report" disabled>
+            <i data-lucide="download"></i>
+            <span>Save report</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="input-panel" aria-label="Resume and job inputs">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Let's decode this posting together</p>
+              <h2>Your resume + the role</h2>
+            </div>
+            <div class="privacy-pill">
+              <i data-lucide="shield-check"></i>
+              <span>Your stuff stays here</span>
+            </div>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Role you want</span>
+              <input id="roleInput" type="text" placeholder="Senior Product Manager" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Company / team</span>
+              <input id="companyInput" type="text" placeholder="Acme Labs" autocomplete="off" />
+            </label>
+          </div>
+
+          <div class="upload-row">
+            <label class="upload-box" for="resumeFile">
+              <input id="resumeFile" type="file" accept=".txt,.md,.pdf,.docx" />
+              <i data-lucide="file-up"></i>
+              <span id="fileLabel">Drop in PDF, DOCX, TXT, or paste below</span>
+            </label>
+          </div>
+
+          <label class="text-block">
+            <span>Resume text</span>
+            <textarea
+              id="resumeText"
+              spellcheck="true"
+              placeholder="Paste your resume here. I will look for the stuff ATS tools tend to care about: contact info, skills, experience, education, projects, certifications, and proof."
+            ></textarea>
+          </label>
+
+          <label class="text-block">
+            <span>Job description</span>
+            <textarea
+              id="jobText"
+              spellcheck="true"
+              placeholder="Paste the job post here. I will pull out the must-haves, nice-to-haves, tools, credentials, repeated phrases, and sneaky little screening clues."
+            ></textarea>
+          </label>
+
+          <div class="scan-actions">
+            <button class="primary-action" type="button" id="analyzeBtn">
+              <i data-lucide="scan-search"></i>
+              <span>Check my fit</span>
+            </button>
+            <button class="secondary-action" type="button" id="saveJobBtn" disabled>
+              <i data-lucide="bookmark-plus"></i>
+              <span>Pin to my hunt</span>
+            </button>
+          </div>
+
+          <div class="output-actions">
+            <button class="secondary-action" type="button" id="downloadCvBtn" disabled>
+              <i data-lucide="file-text"></i>
+              <span>Passable CV draft</span>
+            </button>
+            <button class="secondary-action" type="button" id="downloadPdfBtn" disabled>
+              <i data-lucide="file-check-2"></i>
+              <span>Highlighted PDF</span>
+            </button>
+          </div>
+
+          <p class="helper-text" id="inputHelp">
+            The score updates as you edit. Think of it as a calm pre-flight check, not a judgment
+            from the hiring heavens.
+          </p>
+        </section>
+
+        <section class="results-panel" aria-label="ATS scan results">
+          <div class="score-strip">
+            <div class="score-orbit" id="scoreOrbit" style="--score: 0">
+              <div>
+                <span id="scoreValue">--</span>
+                <small>Match</small>
+              </div>
+            </div>
+            <div class="score-copy">
+              <p class="eyebrow">Buddy check</p>
+              <h2 id="scoreTitle">Ready when you are</h2>
+              <p id="scoreSummary">
+                Add a resume and a job description. I will point out the gaps, the bright spots,
+                and the edits most worth your time.
+              </p>
+            </div>
+          </div>
+
+          <div class="metric-grid" id="metricGrid">
+            <article class="metric-card">
+              <span>Keywords</span>
+              <strong>--</strong>
+              <small>Coverage</small>
+            </article>
+            <article class="metric-card">
+              <span>Critical</span>
+              <strong>--</strong>
+              <small>Must-haves</small>
+            </article>
+            <article class="metric-card">
+              <span>Parse vibe</span>
+              <strong>--</strong>
+              <small>Structure</small>
+            </article>
+            <article class="metric-card">
+              <span>Proof</span>
+              <strong>--</strong>
+              <small>Impact proof</small>
+            </article>
+          </div>
+
+          <nav class="tabbar" aria-label="Results tabs">
+            <button class="tab active" type="button" data-tab="keywords">
+              <i data-lucide="list-filter"></i>
+              <span>Keywords</span>
+            </button>
+            <button class="tab" type="button" data-tab="ats">
+              <i data-lucide="clipboard-check"></i>
+              <span>First Screen</span>
+            </button>
+            <button class="tab" type="button" data-tab="tailor">
+              <i data-lucide="wand-sparkles"></i>
+              <span>Fix List</span>
+            </button>
+            <button class="tab" type="button" data-tab="tracker">
+              <i data-lucide="kanban"></i>
+              <span>Tracker</span>
+            </button>
+          </nav>
+
+          <section class="tab-panel active" id="keywordsPanel" aria-label="Keyword report">
+            <div class="empty-state" id="keywordEmpty">
+              <div class="scan-visual" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <h3>Your match map will show up here.</h3>
+              <p>
+                I will separate must-haves, nice-to-haves, tools, credentials, and softer signals
+                so you can tweak the resume without spiraling.
+              </p>
+            </div>
+            <div class="report-grid" id="keywordReport" hidden>
+              <article class="report-section">
+                <div class="section-title-row">
+                  <h3>Stuff to sneak in truthfully</h3>
+                  <span id="gapCount">0 missing</span>
+                </div>
+                <div class="term-list" id="priorityTerms"></div>
+              </article>
+              <article class="report-section">
+                <div class="section-title-row">
+                  <h3>Already working for you</h3>
+                  <span id="coveredCount">0 covered</span>
+                </div>
+                <div class="term-list compact" id="coveredTerms"></div>
+              </article>
+              <article class="report-section wide">
+                <div class="section-title-row">
+                  <h3>Posting decoder</h3>
+                  <span id="requirementMix">--</span>
+                </div>
+                <div class="category-bars" id="categoryBars"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="atsPanel" aria-label="ATS checks">
+            <div class="check-list" id="atsChecks">
+              <div class="empty-line">Run a scan and I will show the first-screen checks: parsing, sections, contact info, format, impact, and recruiter-style risks.</div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="tailorPanel" aria-label="Tailoring suggestions">
+            <div class="tailor-layout">
+              <article class="report-section">
+                <div class="section-title-row">
+                  <h3>Next best edits</h3>
+                  <button class="mini-button" type="button" id="copyPlanBtn" disabled>
+                    <i data-lucide="copy"></i>
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <ol class="action-list" id="actionList">
+                  <li>Run a scan to generate a ranked tailoring plan.</li>
+                </ol>
+              </article>
+              <article class="report-section">
+                <div class="section-title-row">
+                  <h3>Borrowable starters</h3>
+                  <span>Only if true</span>
+                </div>
+                <div class="bullet-list" id="bulletList">
+                  <p class="empty-line">After a scan, I will turn the gaps into honest bullet starters, recruiter messages, and prep prompts.</p>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="trackerPanel" aria-label="Saved jobs">
+            <div class="tracker-toolbar">
+              <div>
+                <h3>My application trail</h3>
+                <p>A local board for scores, stages, and tiny next steps.</p>
+              </div>
+              <button class="mini-button" type="button" id="clearTrackerBtn">
+                <i data-lucide="trash-2"></i>
+                <span>Clear</span>
+              </button>
+            </div>
+            <div class="tracker-table" id="trackerTable"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
