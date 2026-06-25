@@ -4,6 +4,7 @@ const DB_NAME = "resumeRadarUserVault";
 const DB_VERSION = 1;
 const ACTIVE_USER_ID = "local-applicant";
 const LEGACY_TRACKER_KEY = "resumeRadar.savedJobs.v1";
+const THEME_KEY = "resumeRadar.theme";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -22,6 +23,7 @@ const nodes = {
   saveJobBtn: $("#saveJobBtn"),
   downloadCvBtn: $("#downloadCvBtn"),
   downloadPdfBtn: $("#downloadPdfBtn"),
+  themeToggleBtn: $("#themeToggleBtn"),
   sampleBtn: $("#sampleBtn"),
   clearBtn: $("#clearBtn"),
   exportBtn: $("#exportBtn"),
@@ -263,7 +265,7 @@ Requirements
 - Excellent written communication and stakeholder management.
 
 Preferred
-- Experience with pricing, packaging, monetization, or lifecycle marketing.
+- Experience with packaging, monetization, or lifecycle marketing.
 - MBA or relevant business degree is a plus.`;
 
 init();
@@ -272,6 +274,7 @@ async function init() {
   nodes.resumeFile.addEventListener("change", handleFileUpload);
   nodes.analyzeBtn.addEventListener("click", runScan);
   nodes.sampleBtn.addEventListener("click", loadSample);
+  nodes.themeToggleBtn.addEventListener("click", toggleTheme);
   nodes.clearBtn.addEventListener("click", clearInputs);
   nodes.exportBtn.addEventListener("click", downloadReport);
   nodes.saveJobBtn.addEventListener("click", saveCurrentJob);
@@ -288,9 +291,37 @@ async function init() {
   $$(".tab").forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
+  $$(".main-nav a[href^='#']").forEach((link) => {
+    link.addEventListener("click", handleNavJump);
+  });
 
+  initTheme();
   await initUserVault();
   await renderTracker();
+  refreshIcons();
+}
+
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  const preferredTheme = window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  setTheme(savedTheme || preferredTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  setTheme(currentTheme === "dark" ? "light" : "dark");
+}
+
+function setTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = nextTheme;
+  localStorage.setItem(THEME_KEY, nextTheme);
+
+  const isDark = nextTheme === "dark";
+  nodes.themeToggleBtn.setAttribute("aria-pressed", String(isDark));
+  nodes.themeToggleBtn.innerHTML = isDark
+    ? `<i data-lucide="sun"></i><span>Day mode</span>`
+    : `<i data-lucide="moon"></i><span>Night mode</span>`;
   refreshIcons();
 }
 
@@ -1513,6 +1544,22 @@ function activateTab(tabName) {
   $$(".tab-panel").forEach((panel) => {
     panel.classList.toggle("active", panel.id === `${tabName}Panel`);
   });
+}
+
+function handleNavJump(event) {
+  const target = event.currentTarget.getAttribute("href");
+  const tabMap = {
+    "#keywordsPanel": "keywords",
+    "#categoryBars": "keywords",
+    "#atsPanel": "ats",
+    "#tailorPanel": "tailor",
+    "#trackerPanel": "tracker",
+  };
+
+  if (tabMap[target]) {
+    activateTab(tabMap[target]);
+    refreshIcons();
+  }
 }
 
 async function saveCurrentJob() {

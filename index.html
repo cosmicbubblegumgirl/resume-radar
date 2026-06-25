@@ -37,10 +37,82 @@
             </p>
           </div>
         </div>
+
+        <nav class="main-nav" aria-label="Resume Radar navigation">
+          <div class="nav-item">
+            <button class="nav-trigger" type="button">
+              <span>Features</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="nav-dropdown wide-menu">
+              <div class="menu-column">
+                <a class="menu-card" href="#resumeText">
+                  <i data-lucide="radar"></i>
+                  <span><strong>Match Radar</strong><small>See how your CV pings against the job post.</small></span>
+                </a>
+                <a class="menu-card" href="#keywordsPanel">
+                  <i data-lucide="list-checks"></i>
+                  <span><strong>Keyword Map</strong><small>Spot the honest gaps before the bots do.</small></span>
+                </a>
+                <a class="menu-card" href="#atsPanel">
+                  <i data-lucide="shield-check"></i>
+                  <span><strong>First-Screen Checks</strong><small>Contact, sections, proof, and parseability.</small></span>
+                </a>
+              </div>
+              <div class="menu-column">
+                <a class="menu-card" href="#downloadCvBtn">
+                  <i data-lucide="file-text"></i>
+                  <span><strong>Passable CV Draft</strong><small>A cleaner version to review before sending.</small></span>
+                </a>
+                <a class="menu-card" href="#downloadPdfBtn">
+                  <i data-lucide="highlighter"></i>
+                  <span><strong>Highlighted Repair PDF</strong><small>Changes plus the “why” in one output.</small></span>
+                </a>
+                <a class="menu-card" href="#dbStatus">
+                  <i data-lucide="database"></i>
+                  <span><strong>User Vault</strong><small>Your profile and scans stay in this browser.</small></span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="nav-item">
+            <button class="nav-trigger" type="button">
+              <span>CV Tools</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="nav-dropdown">
+              <a class="menu-line" href="#uploadSection"><strong>Any-size PDF intake</strong><small>No app-side size cap, just browser limits.</small></a>
+              <a class="menu-line" href="#tailorPanel"><strong>Bullet starters</strong><small>Borrow the shape, keep it truthful.</small></a>
+              <a class="menu-line" href="#metricGrid"><strong>Proof score</strong><small>Check whether your wins have enough evidence.</small></a>
+              <a class="menu-line" href="#categoryBars"><strong>Requirement map</strong><small>See where the posting is leaning.</small></a>
+            </div>
+          </div>
+
+          <div class="nav-item">
+            <button class="nav-trigger" type="button">
+              <span>Job Hunt</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="nav-dropdown">
+              <a class="menu-line" href="#trackerPanel"><strong>Application trail</strong><small>Keep the little next step visible.</small></a>
+              <a class="menu-line" href="#saveJobBtn"><strong>Pin a role</strong><small>Save the score before the tab disappears.</small></a>
+              <a class="menu-line" href="#tailorPanel"><strong>Recruiter message</strong><small>A warm outreach starter, not a cringe cannon.</small></a>
+            </div>
+          </div>
+
+          <a class="nav-link" href="#results-panel">ATS Checker</a>
+        </nav>
+
         <div class="topbar-actions" aria-label="Global actions">
+          <span class="free-pill">Free to use</span>
           <button class="icon-button soft" type="button" id="sampleBtn" title="Load sample data">
             <i data-lucide="sparkles"></i>
             <span>Try demo</span>
+          </button>
+          <button class="icon-button ghost theme-toggle" type="button" id="themeToggleBtn" title="Switch color theme" aria-pressed="false">
+            <i data-lucide="moon"></i>
+            <span>Night mode</span>
           </button>
           <button class="icon-button ghost" type="button" id="clearBtn" title="Clear inputs">
             <i data-lucide="rotate-ccw"></i>
@@ -95,7 +167,7 @@
             </div>
           </div>
 
-          <div class="upload-row">
+          <div class="upload-row" id="uploadSection">
             <label class="upload-box" for="resumeFile">
               <input id="resumeFile" type="file" accept=".txt,.md,.pdf,.docx" />
               <i data-lucide="file-up"></i>
@@ -149,7 +221,7 @@
           </p>
         </section>
 
-        <section class="results-panel" aria-label="ATS scan results">
+        <section class="results-panel" id="results-panel" aria-label="ATS scan results">
           <div class="score-strip">
             <div class="score-orbit" id="scoreOrbit" style="--score: 0">
               <div>
