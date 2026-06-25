@@ -233,21 +233,24 @@
           </div>
 
           <div class="layout-picker" id="layoutPicker" aria-label="Passable CV layout choices">
-            <div>
+            <div class="layout-picker-heading">
               <p class="eyebrow">Passable layout</p>
-              <h3>Choose the suit your CV wears</h3>
+              <h3>Pick the CV suit</h3>
             </div>
             <label class="layout-option">
               <input type="radio" name="cvLayout" value="signal" checked />
-              <span><strong>Clear Signal</strong><small>Classic, airy, and ATS-friendly.</small></span>
+              <span class="layout-preview" aria-hidden="true"><b></b><em></em><em></em></span>
+              <span class="layout-copy"><strong>Clear Signal</strong><small>Classic and airy.</small></span>
             </label>
             <label class="layout-option">
               <input type="radio" name="cvLayout" value="compact" />
-              <span><strong>Compact Current</strong><small>Denser layout for longer experience.</small></span>
+              <span class="layout-preview compact-preview" aria-hidden="true"><b></b><em></em><em></em></span>
+              <span class="layout-copy"><strong>Compact Current</strong><small>For longer histories.</small></span>
             </label>
             <label class="layout-option">
               <input type="radio" name="cvLayout" value="explorer" />
-              <span><strong>Warm Explorer</strong><small>Still professional, with a softer pulse.</small></span>
+              <span class="layout-preview warm-preview" aria-hidden="true"><b></b><em></em><em></em></span>
+              <span class="layout-copy"><strong>Warm Explorer</strong><small>Soft but polished.</small></span>
             </label>
           </div>
 
