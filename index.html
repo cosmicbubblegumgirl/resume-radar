@@ -40,11 +40,15 @@
 
         <nav class="main-nav" aria-label="Resume Radar navigation">
           <div class="nav-item">
-            <button class="nav-trigger" type="button">
+            <button class="nav-trigger" type="button" aria-expanded="false">
               <span>Features</span>
               <i data-lucide="chevron-down"></i>
             </button>
             <div class="nav-dropdown wide-menu">
+              <div class="menu-intro">
+                <p class="eyebrow">Feature radar</p>
+                <h3>The calm tools before you apply</h3>
+              </div>
               <div class="menu-column">
                 <a class="menu-card" href="#resumeText">
                   <i data-lucide="radar"></i>
@@ -60,9 +64,9 @@
                 </a>
               </div>
               <div class="menu-column">
-                <a class="menu-card" href="#downloadCvBtn">
+                <a class="menu-card" href="#layoutPicker">
                   <i data-lucide="file-text"></i>
-                  <span><strong>Passable CV Draft</strong><small>A cleaner version to review before sending.</small></span>
+                  <span><strong>Passable CV PDF</strong><small>Pick a layout, then export a cleaner resume.</small></span>
                 </a>
                 <a class="menu-card" href="#downloadPdfBtn">
                   <i data-lucide="highlighter"></i>
@@ -77,12 +81,17 @@
           </div>
 
           <div class="nav-item">
-            <button class="nav-trigger" type="button">
+            <button class="nav-trigger" type="button" aria-expanded="false">
               <span>CV Tools</span>
               <i data-lucide="chevron-down"></i>
             </button>
             <div class="nav-dropdown">
+              <div class="menu-intro compact-intro">
+                <p class="eyebrow">CV tools</p>
+                <h3>Make the file easier to read</h3>
+              </div>
               <a class="menu-line" href="#uploadSection"><strong>Any-size PDF intake</strong><small>No app-side size cap, just browser limits.</small></a>
+              <a class="menu-line" href="#layoutPicker"><strong>Layout picker</strong><small>Choose a passable CV PDF style.</small></a>
               <a class="menu-line" href="#tailorPanel"><strong>Bullet starters</strong><small>Borrow the shape, keep it truthful.</small></a>
               <a class="menu-line" href="#metricGrid"><strong>Proof score</strong><small>Check whether your wins have enough evidence.</small></a>
               <a class="menu-line" href="#categoryBars"><strong>Requirement map</strong><small>See where the posting is leaning.</small></a>
@@ -90,18 +99,37 @@
           </div>
 
           <div class="nav-item">
-            <button class="nav-trigger" type="button">
+            <button class="nav-trigger" type="button" aria-expanded="false">
               <span>Job Hunt</span>
               <i data-lucide="chevron-down"></i>
             </button>
             <div class="nav-dropdown">
+              <div class="menu-intro compact-intro">
+                <p class="eyebrow">Job hunt</p>
+                <h3>Keep your next move visible</h3>
+              </div>
               <a class="menu-line" href="#trackerPanel"><strong>Application trail</strong><small>Keep the little next step visible.</small></a>
               <a class="menu-line" href="#saveJobBtn"><strong>Pin a role</strong><small>Save the score before the tab disappears.</small></a>
               <a class="menu-line" href="#tailorPanel"><strong>Recruiter message</strong><small>A warm outreach starter, not a cringe cannon.</small></a>
             </div>
           </div>
 
-          <a class="nav-link" href="#results-panel">ATS Checker</a>
+          <div class="nav-item">
+            <button class="nav-trigger" type="button" aria-expanded="false">
+              <span>ATS Checker</span>
+              <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="nav-dropdown">
+              <div class="menu-intro compact-intro">
+                <p class="eyebrow">ATS checker</p>
+                <h3>Run the first-screen rehearsal</h3>
+              </div>
+              <a class="menu-line" href="#results-panel"><strong>Match score</strong><small>The quick signal, not a final verdict.</small></a>
+              <a class="menu-line" href="#atsPanel"><strong>Parse checks</strong><small>Sections, contact info, layout, and file safety.</small></a>
+              <a class="menu-line" href="#keywordsPanel"><strong>Keyword gaps</strong><small>What the posting keeps asking for.</small></a>
+              <a class="menu-line" href="#downloadPdfBtn"><strong>Repair pack</strong><small>A PDF with highlighted fixes and explanations.</small></a>
+            </div>
+          </div>
         </nav>
 
         <div class="topbar-actions" aria-label="Global actions">
@@ -204,10 +232,29 @@
             </button>
           </div>
 
+          <div class="layout-picker" id="layoutPicker" aria-label="Passable CV layout choices">
+            <div>
+              <p class="eyebrow">Passable layout</p>
+              <h3>Choose the suit your CV wears</h3>
+            </div>
+            <label class="layout-option">
+              <input type="radio" name="cvLayout" value="signal" checked />
+              <span><strong>Clear Signal</strong><small>Classic, airy, and ATS-friendly.</small></span>
+            </label>
+            <label class="layout-option">
+              <input type="radio" name="cvLayout" value="compact" />
+              <span><strong>Compact Current</strong><small>Denser layout for longer experience.</small></span>
+            </label>
+            <label class="layout-option">
+              <input type="radio" name="cvLayout" value="explorer" />
+              <span><strong>Warm Explorer</strong><small>Still professional, with a softer pulse.</small></span>
+            </label>
+          </div>
+
           <div class="output-actions">
             <button class="secondary-action" type="button" id="downloadCvBtn" disabled>
               <i data-lucide="file-text"></i>
-              <span>Passable CV draft</span>
+              <span>Passable CV PDF</span>
             </button>
             <button class="secondary-action" type="button" id="downloadPdfBtn" disabled>
               <i data-lucide="file-check-2"></i>

@@ -268,6 +268,48 @@ Preferred
 - Experience with packaging, monetization, or lifecycle marketing.
 - MBA or relevant business degree is a plus.`;
 
+const cvLayouts = {
+  signal: {
+    name: "Clear Signal",
+    accent: [0, 166, 118],
+    soft: [231, 251, 243],
+    ink: [23, 32, 28],
+    muted: [88, 102, 94],
+    margin: 48,
+    titleSize: 21,
+    roleSize: 11,
+    headingSize: 10.5,
+    bodySize: 9.6,
+    leading: 13,
+  },
+  compact: {
+    name: "Compact Current",
+    accent: [47, 111, 237],
+    soft: [232, 241, 255],
+    ink: [22, 31, 42],
+    muted: [82, 94, 108],
+    margin: 38,
+    titleSize: 18,
+    roleSize: 10,
+    headingSize: 9.8,
+    bodySize: 8.8,
+    leading: 11.3,
+  },
+  explorer: {
+    name: "Warm Explorer",
+    accent: [226, 93, 79],
+    soft: [255, 241, 232],
+    ink: [27, 32, 28],
+    muted: [95, 82, 70],
+    margin: 46,
+    titleSize: 21,
+    roleSize: 11,
+    headingSize: 10.4,
+    bodySize: 9.5,
+    leading: 13.2,
+  },
+};
+
 init();
 
 async function init() {
@@ -291,6 +333,7 @@ async function init() {
   $$(".tab").forEach((button) => {
     button.addEventListener("click", () => activateTab(button.dataset.tab));
   });
+  setupNavigationDropdowns();
   $$(".main-nav a[href^='#']").forEach((link) => {
     link.addEventListener("click", handleNavJump);
   });
@@ -299,6 +342,38 @@ async function init() {
   await initUserVault();
   await renderTracker();
   refreshIcons();
+}
+
+function setupNavigationDropdowns() {
+  const navItems = $$(".nav-item");
+
+  navItems.forEach((item) => {
+    const trigger = item.querySelector(".nav-trigger");
+    if (!trigger) return;
+
+    trigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const willOpen = !item.classList.contains("open");
+      closeNavigationDropdowns();
+      item.classList.toggle("open", willOpen);
+      trigger.setAttribute("aria-expanded", String(willOpen));
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".main-nav")) closeNavigationDropdowns();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeNavigationDropdowns();
+  });
+}
+
+function closeNavigationDropdowns() {
+  $$(".nav-item.open").forEach((item) => {
+    item.classList.remove("open");
+    item.querySelector(".nav-trigger")?.setAttribute("aria-expanded", "false");
+  });
 }
 
 function initTheme() {
@@ -1560,6 +1635,8 @@ function handleNavJump(event) {
     activateTab(tabMap[target]);
     refreshIcons();
   }
+
+  closeNavigationDropdowns();
 }
 
 async function saveCurrentJob() {
@@ -1757,19 +1834,162 @@ function downloadReport() {
 function downloadPassableCv() {
   if (!lastReport) return;
 
-  const note = [
-    "Resume Radar passable CV draft",
-    "Review before sending. The draft improves ATS readability but does not verify truth for you.",
-    "",
-  ].join("\n");
-  const blob = new Blob([note + lastReport.optimizedCv], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `passable-cv-${slugify(lastReport.role)}.txt`;
-  anchor.click();
-  URL.revokeObjectURL(url);
-  showToast("Passable CV draft downloaded.");
+  const jsPDF = window.jspdf?.jsPDF;
+  if (!jsPDF) {
+    showToast("PDF maker is still loading. Try again in a moment.");
+    return;
+  }
+
+  const layoutKey = getSelectedCvLayout();
+  const layout = cvLayouts[layoutKey] || cvLayouts.signal;
+  const parsedCv = parseOptimizedCv(lastReport);
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+
+  renderPassableCvPdf(doc, parsedCv, layout);
+  doc.save(`passable-cv-${layoutKey}-${slugify(lastReport.role)}.pdf`);
+  showToast(`${layout.name} PDF downloaded.`);
+}
+
+function getSelectedCvLayout() {
+  return document.querySelector('input[name="cvLayout"]:checked')?.value || "signal";
+}
+
+function parseOptimizedCv(report) {
+  const lines = report.optimizedCv.split("\n").map((line) => line.trimEnd());
+  const summaryIndex = lines.findIndex((line) => line.trim() === "TARGET SUMMARY");
+  const skillsIndex = lines.findIndex((line) => line.trim() === "CORE SKILLS");
+  const bodyIndex = lines.findIndex((line) => line.trim() === "EXPERIENCE, EDUCATION, AND PROJECTS");
+  const proofIndex = lines.findIndex((line) => line.trim() === "FINAL PROOF CHECK");
+
+  const contactLines = lines.slice(0, summaryIndex > -1 ? summaryIndex : 0).filter((line) => line.trim());
+  const summaryLines = lines.slice(summaryIndex + 1, skillsIndex).filter((line) => line.trim());
+  const skillLines = lines.slice(skillsIndex + 1, bodyIndex).filter((line) => line.trim());
+  const bodyEnd = proofIndex > -1 ? proofIndex : lines.length;
+  const bodyLines = lines.slice(bodyIndex + 1, bodyEnd);
+
+  return {
+    name: contactLines[0] || currentUser.name || "Applicant Name",
+    contact: contactLines.slice(1).join(" | "),
+    role: report.role || "Target role",
+    company: report.company || "",
+    summary: summaryLines.join(" "),
+    skills: skillLines.join(", ").split(",").map((skill) => cleanTerm(skill)).filter(Boolean),
+    bodyLines,
+  };
+}
+
+function renderPassableCvPdf(doc, cv, layout) {
+  const page = {
+    width: doc.internal.pageSize.getWidth(),
+    height: doc.internal.pageSize.getHeight(),
+    margin: layout.margin,
+  };
+
+  let y = layout.margin;
+  drawCvHeader(doc, page, cv, layout, y);
+  y += layout.name === "Compact Current" ? 70 : 86;
+
+  y = writeCvSection(doc, page, y, "Professional Summary", [cv.summary], layout);
+  y = writeCvSection(doc, page, y, "Core Skills", [cv.skills.join(", ")], layout);
+  y = writeCvSection(doc, page, y, "Experience, Education, and Projects", cv.bodyLines, layout);
+
+  drawCvFooter(doc, page, layout);
+}
+
+function drawCvHeader(doc, page, cv, layout, y) {
+  const maxWidth = page.width - page.margin * 2;
+
+  if (layout.name === "Warm Explorer") {
+    doc.setFillColor(...layout.soft);
+    doc.roundedRect(page.margin - 10, y - 16, maxWidth + 20, 76, 8, 8, "F");
+  }
+
+  doc.setTextColor(...layout.ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(layout.titleSize);
+  doc.text(cv.name, page.margin, y);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(layout.roleSize);
+  doc.setTextColor(...layout.accent);
+  doc.text(cv.role, page.margin, y + 18);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.6);
+  doc.setTextColor(...layout.muted);
+  doc.text(doc.splitTextToSize(cv.contact, maxWidth), page.margin, y + 34);
+
+  doc.setDrawColor(...layout.accent);
+  doc.setLineWidth(layout.name === "Compact Current" ? 1.2 : 2);
+  doc.line(page.margin, y + (layout.name === "Compact Current" ? 52 : 62), page.width - page.margin, y + (layout.name === "Compact Current" ? 52 : 62));
+}
+
+function writeCvSection(doc, page, y, heading, lines, layout) {
+  const maxWidth = page.width - page.margin * 2;
+  const cleanLines = lines.filter((line) => line !== undefined && line !== null);
+
+  y = ensurePdfSpace(doc, page, y, 34);
+  doc.setFillColor(...layout.soft);
+  doc.roundedRect(page.margin, y - 13, maxWidth, 20, 5, 5, "F");
+  doc.setTextColor(...layout.ink);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(layout.headingSize);
+  doc.text(heading.toUpperCase(), page.margin + 8, y);
+  y += 21;
+
+  for (const rawLine of cleanLines) {
+    const line = String(rawLine || "").trim();
+
+    if (!line) {
+      y += layout.leading * 0.35;
+      continue;
+    }
+
+    const looksLikeHeading = isResumeSubheading(line);
+    const isBullet = /^[-*\u2022]/.test(line);
+    const text = isBullet ? line.replace(/^[-*\u2022]\s*/, "- ") : line;
+    const x = isBullet ? page.margin + 10 : page.margin;
+    const width = isBullet ? maxWidth - 10 : maxWidth;
+    const size = looksLikeHeading ? layout.bodySize + 0.4 : layout.bodySize;
+    const leading = looksLikeHeading ? layout.leading + 1 : layout.leading;
+
+    y = ensurePdfSpace(doc, page, y, leading * 2);
+    doc.setFont("helvetica", looksLikeHeading ? "bold" : "normal");
+    doc.setFontSize(size);
+    doc.setTextColor(...(looksLikeHeading ? layout.ink : layout.muted));
+
+    const wrapped = doc.splitTextToSize(text, width);
+    doc.text(wrapped, x, y);
+    y += Math.max(leading, wrapped.length * leading);
+  }
+
+  return y + (layout.name === "Compact Current" ? 5 : 10);
+}
+
+function isResumeSubheading(line) {
+  if (/^[-*\u2022]/.test(line)) return false;
+  if (/^\d{4}\b/.test(line)) return false;
+  return (
+    /summary|skills|experience|education|projects|certifications|professional/i.test(line) ||
+    /\|/.test(line) ||
+    (/^[A-Z][A-Za-z\s,&-]{2,48}$/.test(line) && line.split(/\s+/).length <= 5)
+  );
+}
+
+function drawCvFooter(doc, page, layout) {
+  const pageCount = doc.getNumberOfPages();
+
+  for (let index = 1; index <= pageCount; index += 1) {
+    doc.setPage(index);
+    doc.setDrawColor(...layout.accent);
+    doc.setLineWidth(0.5);
+    doc.line(page.margin, page.height - 34, page.width - page.margin, page.height - 34);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.4);
+    doc.setTextColor(...layout.muted);
+    doc.text("Resume Radar passable CV PDF. Review every detail before sending.", page.margin, page.height - 20);
+    doc.text(String(index), page.width - page.margin, page.height - 20, { align: "right" });
+  }
 }
 
 function downloadHighlightedPdf() {

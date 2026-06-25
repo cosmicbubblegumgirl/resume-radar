@@ -7,7 +7,7 @@ A local-first ATS resume scanner for applicants. Resume Radar compares a CV agai
 - CV upload for PDF, DOCX, TXT, and pasted text
 - Job description matching with live score updates
 - Keyword gaps, covered skills, first-screen risks, and tailoring steps
-- Passable CV draft export
+- Passable CV PDF export with layout choices
 - Highlighted PDF repair pack with change reasoning
 - Browser-local user vault powered by IndexedDB
 - Local application tracker
