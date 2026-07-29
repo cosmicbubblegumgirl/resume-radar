@@ -58,6 +58,10 @@
                   <i data-lucide="list-checks"></i>
                   <span><strong>Keyword Map</strong><small>Spot the honest gaps before the bots do.</small></span>
                 </a>
+                <a class="menu-card" href="#jobPostLab">
+                  <i data-lucide="clipboard-list"></i>
+                  <span><strong>Job Post Lab</strong><small>Paste the role and decode what it is really asking for.</small></span>
+                </a>
                 <a class="menu-card" href="#atsPanel">
                   <i data-lucide="shield-check"></i>
                   <span><strong>First-Screen Checks</strong><small>Contact, sections, proof, and parseability.</small></span>
@@ -110,6 +114,8 @@
               </div>
               <a class="menu-line" href="#trackerPanel"><strong>Application trail</strong><small>Keep the little next step visible.</small></a>
               <a class="menu-line" href="#saveJobBtn"><strong>Pin a role</strong><small>Save the score before the tab disappears.</small></a>
+              <a class="menu-line" href="#jobPostLab"><strong>Job post lab</strong><small>Paste the posting and let the role clues surface.</small></a>
+              <a class="menu-line" href="#supportCoach"><strong>Skill support coach</strong><small>Present your real experience so it gets noticed.</small></a>
               <a class="menu-line" href="#tailorPanel"><strong>Recruiter message</strong><small>A warm outreach starter, not a cringe cannon.</small></a>
             </div>
           </div>
@@ -127,6 +133,7 @@
               <a class="menu-line" href="#results-panel"><strong>Match score</strong><small>The quick signal, not a final verdict.</small></a>
               <a class="menu-line" href="#atsPanel"><strong>Parse checks</strong><small>Sections, contact info, layout, and file safety.</small></a>
               <a class="menu-line" href="#keywordsPanel"><strong>Keyword gaps</strong><small>What the posting keeps asking for.</small></a>
+              <a class="menu-line" href="#supportCoach"><strong>Do not get overlooked</strong><small>Turn overlap into clear, honest positioning.</small></a>
               <a class="menu-line" href="#downloadPdfBtn"><strong>Repair pack</strong><small>A PDF with highlighted fixes and explanations.</small></a>
             </div>
           </div>
@@ -212,14 +219,37 @@
             ></textarea>
           </label>
 
-          <label class="text-block">
-            <span>Job description</span>
-            <textarea
-              id="jobText"
-              spellcheck="true"
-              placeholder="Paste the job post here. I will pull out the must-haves, nice-to-haves, tools, credentials, repeated phrases, and sneaky little screening clues."
-            ></textarea>
-          </label>
+          <div class="job-lab-card" id="jobPostLab">
+            <div class="job-lab-heading">
+              <div>
+                <p class="eyebrow">Job Post Lab</p>
+                <h3>Paste the posting, then we will translate the role together</h3>
+                <p>
+                  I will compare it with your CV, surface the must-haves, and help you present
+                  your real skills clearly so you are not quietly overlooked.
+                </p>
+              </div>
+              <span class="lab-badge">
+                <i data-lucide="radar"></i>
+                Role clues
+              </span>
+            </div>
+
+            <label class="text-block job-post-field">
+              <span>Job post</span>
+              <textarea
+                id="jobText"
+                spellcheck="true"
+                placeholder="Paste the job post here. I will pull out must-haves, nice-to-haves, tools, credentials, repeated phrases, and the subtle screening clues hiding between the lines."
+              ></textarea>
+            </label>
+
+            <div class="job-lab-support" aria-label="Job post support">
+              <span><i data-lucide="key-round"></i> Must-have clues</span>
+              <span><i data-lucide="messages-square"></i> Better wording</span>
+              <span><i data-lucide="shield-check"></i> Honest positioning</span>
+            </div>
+          </div>
 
           <div class="scan-actions">
             <button class="primary-action" type="button" id="analyzeBtn">
@@ -397,6 +427,19 @@
                 </div>
                 <div class="bullet-list" id="bulletList">
                   <p class="empty-line">After a scan, I will turn the gaps into honest bullet starters, recruiter messages, and prep prompts.</p>
+                </div>
+              </article>
+              <article class="report-section support-coach" id="supportCoach">
+                <div class="section-title-row">
+                  <h3>Skill support coach</h3>
+                  <span>Clear, not inflated</span>
+                </div>
+                <p class="support-intro">
+                  Paste a job post and run a scan. I will help you show the right skills in the
+                  right places so a busy screener can actually see the match.
+                </p>
+                <div class="support-grid" id="supportCoachList">
+                  <p class="empty-line">Your personalized positioning notes will appear here after the scan.</p>
                 </div>
               </article>
             </div>

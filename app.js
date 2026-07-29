@@ -44,6 +44,7 @@ const nodes = {
   atsChecks: $("#atsChecks"),
   actionList: $("#actionList"),
   bulletList: $("#bulletList"),
+  supportCoachList: $("#supportCoachList"),
   copyPlanBtn: $("#copyPlanBtn"),
   trackerTable: $("#trackerTable"),
   clearTrackerBtn: $("#clearTrackerBtn"),
@@ -1604,6 +1605,100 @@ function renderTailoring(report) {
       ${interviewProof || "<p>Prepare a concise example for your strongest measurable achievement.</p>"}
     </div>
   `;
+
+  renderSupportCoach(report);
+}
+
+function renderSupportCoach(report) {
+  const cards = buildSkillPresentationSupport(report);
+
+  nodes.supportCoachList.innerHTML = cards.map(renderSupportCard).join("");
+}
+
+function renderSupportCard(card) {
+  const chips = card.chips.length
+    ? `<div class="support-chips">${card.chips.map((chip) => `<span>${escapeHtml(chip)}</span>`).join("")}</div>`
+    : "";
+  const script = card.script
+    ? `
+      <div class="support-script">
+        <small>Try this shape</small>
+        <p>${escapeHtml(card.script)}</p>
+      </div>
+    `
+    : "";
+
+  return `
+    <div class="support-card ${escapeHtml(card.tone || "")}">
+      <div class="support-card-top">
+        <span class="support-icon"><i data-lucide="${escapeHtml(card.icon)}"></i></span>
+        <small>${escapeHtml(card.eyebrow)}</small>
+      </div>
+      <h4>${escapeHtml(card.title)}</h4>
+      <p>${escapeHtml(card.text)}</p>
+      ${chips}
+      ${script}
+    </div>
+  `;
+}
+
+function buildSkillPresentationSupport(report) {
+  const strongest = report.coveredTerms.filter(isCvSkill).slice(0, 5).map((term) => term.label);
+  const weakSignals = report.missingTerms
+    .filter((term) => term.status === "weak")
+    .filter(isCvSkill)
+    .slice(0, 4)
+    .map((term) => term.label);
+  const missingCritical = report.missingTerms
+    .filter((term) => term.level === "required" || term.weight >= 1.55)
+    .filter(isCvSkill)
+    .slice(0, 4)
+    .map((term) => term.label);
+  const skillLanguage = unique([...strongest.slice(0, 3), ...weakSignals.slice(0, 2)]).slice(0, 4);
+  const leadPhrase = formatList(strongest.slice(0, 3), "your most relevant work");
+  const role = report.role || "this role";
+
+  return [
+    {
+      icon: "badge-check",
+      eyebrow: "Lead with",
+      title: "Put your real overlap where it cannot be missed",
+      text: strongest.length
+        ? `Your clearest overlap is ${formatList(strongest)}. Pull two or three of these into the top summary and your most recent bullets so the first screen sees the fit fast.`
+        : "I am not seeing strong overlap yet. Add concrete projects, tools, and outcomes that match the role before you worry about polishing the wording.",
+      chips: strongest,
+      script: `${role} candidate with experience in ${leadPhrase}, focused on [team problem] and measurable outcomes.`,
+    },
+    {
+      icon: "messages-square",
+      eyebrow: "Translate",
+      title: "Use their language when it is already true",
+      text: weakSignals.length
+        ? `These signals are present but quiet: ${formatList(weakSignals)}. Repeat accurate terms in context, then attach a result so it reads like proof instead of keyword confetti.`
+        : "The role language you already cover is fairly clear. Keep using exact tool, method, and responsibility names when they are accurate.",
+      chips: weakSignals,
+      script: `Before: Managed projects. After: Led ${skillLanguage[0] || "role-relevant"} work for [audience], improving [metric] by [result].`,
+    },
+    {
+      icon: "shield-check",
+      eyebrow: "Bridge carefully",
+      title: "Close gaps without pretending",
+      text: missingCritical.length
+        ? `Do not fake ${formatList(missingCritical)}. If any are true, add proof. If not, show adjacent experience and be ready to explain how you are building that skill.`
+        : "No urgent required-skill gap is shouting right now. Your next lift is making proof sharper and easier to skim.",
+      chips: missingCritical,
+      script: `If true: Used ${missingCritical[0] || "the target skill"} to [deliverable] for [outcome]. If adjacent: Built related experience through [project], now deepening [target area].`,
+    },
+    {
+      icon: "map",
+      eyebrow: "Placement",
+      title: "Put each signal in the right CV spot",
+      text: "Use the summary for role alignment, Core Skills for exact tools, and Experience bullets for proof. That gives the ATS clean terms and gives the human a reason to believe them.",
+      chips: ["Summary", "Core Skills", "Experience"],
+      script: "Formula: action verb + job keyword + scope + measurable result.",
+      tone: "placement-card",
+    },
+  ];
 }
 
 function buildRecruiterMessage(report) {
@@ -1628,6 +1723,7 @@ function handleNavJump(event) {
     "#categoryBars": "keywords",
     "#atsPanel": "ats",
     "#tailorPanel": "tailor",
+    "#supportCoach": "tailor",
     "#trackerPanel": "tracker",
   };
 
@@ -1782,6 +1878,7 @@ function resetResults() {
   nodes.atsChecks.innerHTML = `<div class="empty-line">Run a scan and I will show the first-screen checks: parsing, sections, contact info, format, impact, and recruiter-style risks.</div>`;
   nodes.actionList.innerHTML = "<li>Run a scan to generate a ranked tailoring plan.</li>";
   nodes.bulletList.innerHTML = `<p class="empty-line">After a scan, I will turn the gaps into honest bullet starters, recruiter messages, and prep prompts.</p>`;
+  nodes.supportCoachList.innerHTML = `<p class="empty-line">Your personalized positioning notes will appear here after the scan.</p>`;
   nodes.saveJobBtn.disabled = true;
   nodes.exportBtn.disabled = true;
   nodes.downloadCvBtn.disabled = true;
@@ -1800,6 +1897,7 @@ function copyTailoringPlan() {
 function downloadReport() {
   if (!lastReport) return;
 
+  const supportNotes = buildSkillPresentationSupport(lastReport);
   const report = [
     `Resume Radar ATS Scan`,
     `Role: ${lastReport.role}`,
@@ -1818,6 +1916,9 @@ function downloadReport() {
     "",
     "Tailoring plan:",
     ...lastReport.actionPlan.map((action, index) => `${index + 1}. ${action}`),
+    "",
+    "Skill presentation support:",
+    ...supportNotes.map((note) => `- ${note.title}: ${note.text}`),
     "",
     "Note: This is a transparent ATS-style estimate, not a guarantee of employer ranking.",
   ].join("\n");
@@ -2256,6 +2357,16 @@ function groupBy(items, keyFn) {
 
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function formatList(values, fallback = "") {
+  const items = unique(values.map((value) => cleanTerm(value)).filter(Boolean));
+
+  if (!items.length) return fallback;
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 function clampScore(value) {
