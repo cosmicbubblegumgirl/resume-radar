@@ -1,6 +1,6 @@
 # Resume Radar
 
-A local-first ATS resume scanner for applicants. Resume Radar compares a CV against a job post, highlights ATS risks, generates a passable CV draft, and exports a PDF repair pack with highlighted changes and explanations.
+A local-first ATS resume scanner for applicants. Resume Radar compares a CV against a job post, highlights ATS risks, prepares a passable CV draft, and exports a PDF repair pack with highlighted changes and explanations.
 
 ## Features
 
@@ -11,7 +11,7 @@ A local-first ATS resume scanner for applicants. Resume Radar compares a CV agai
 - Skill support coach for honest CV positioning and role-language guidance
 - Passable CV PDF export with layout choices
 - Highlighted PDF repair pack with change reasoning
-- Browser-local user vault powered by IndexedDB
+- Browser-local user vault stored with IndexedDB
 - Local application tracker
 - No app-side PDF file-size cap; very large PDFs remain limited by the user's browser and device memory
 

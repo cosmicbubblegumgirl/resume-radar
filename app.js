@@ -145,7 +145,6 @@ const skillBank = [
   { term: "Terraform", aliases: [], category: "Tools" },
   { term: "Linux", aliases: [], category: "Tools" },
   { term: "Machine Learning", aliases: ["ML"], category: "Hard skills" },
-  { term: "Artificial Intelligence", aliases: ["AI"], category: "Hard skills" },
   { term: "Data Analysis", aliases: ["Data Analytics"], category: "Hard skills" },
   { term: "Data Visualization", aliases: [], category: "Hard skills" },
   { term: "Power BI", aliases: ["PowerBI"], category: "Tools" },
@@ -1876,7 +1875,7 @@ function resetResults() {
   nodes.keywordEmpty.hidden = false;
   nodes.keywordReport.hidden = true;
   nodes.atsChecks.innerHTML = `<div class="empty-line">Run a scan and I will show the first-screen checks: parsing, sections, contact info, format, impact, and recruiter-style risks.</div>`;
-  nodes.actionList.innerHTML = "<li>Run a scan to generate a ranked tailoring plan.</li>";
+  nodes.actionList.innerHTML = "<li>Run a scan to build a ranked tailoring plan.</li>";
   nodes.bulletList.innerHTML = `<p class="empty-line">After a scan, I will turn the gaps into honest bullet starters, recruiter messages, and prep prompts.</p>`;
   nodes.supportCoachList.innerHTML = `<p class="empty-line">Your personalized positioning notes will appear here after the scan.</p>`;
   nodes.saveJobBtn.disabled = true;
@@ -1937,7 +1936,7 @@ function downloadPassableCv() {
 
   const jsPDF = window.jspdf?.jsPDF;
   if (!jsPDF) {
-    showToast("PDF maker is still loading. Try again in a moment.");
+    showToast("PDF tools are still loading. Try again in a moment.");
     return;
   }
 
@@ -2098,7 +2097,7 @@ function downloadHighlightedPdf() {
 
   const jsPDF = window.jspdf?.jsPDF;
   if (!jsPDF) {
-    showToast("PDF maker is still loading. Try again in a moment.");
+    showToast("PDF tools are still loading. Try again in a moment.");
     return;
   }
 
